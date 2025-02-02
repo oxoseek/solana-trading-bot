@@ -6,14 +6,14 @@ from collections import defaultdict
 
 # 🔗 配置 Solana RPC & API
 SOLANA_RPC_URL = "https://api.mainnet-beta.solana.com"
-HELIUS_API_KEY = "你的HeliusAPIKey"
+HELIUS_API_KEY = "ef8d226c-bdcc-457e-b5da-522feb7840be"
 client = Client(SOLANA_RPC_URL)
 
 # 🎯 监控 KOL 钱包
 KOL_WALLETS = [
-    "Wallet_Address_1",
-    "Wallet_Address_2",
-    "Wallet_Address_3"
+    "6FNbu3i6vpigXMatC6SyWKibUAdJyyX8nM8WDtZCNcEz",
+    "6xUL8CUfV1fzd3UQoDBs7agWNXpwyE5q56css1wHNFFU",
+    "9v6RGY46wf672PtpYMxCJ1nvrVTrukUDn1AjE634rvCf"
 ]
 
 # ✅ 获取钱包持仓
