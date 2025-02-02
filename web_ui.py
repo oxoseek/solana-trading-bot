@@ -1,19 +1,13 @@
 import streamlit as st
 import requests
 import pandas as pd
-import joblib
 from solana.rpc.api import Client
 from collections import defaultdict
 
 # 🔗 配置 Solana RPC & API
 SOLANA_RPC_URL = "https://api.mainnet-beta.solana.com"
-JUPITER_SWAP_API = "https://quote-api.jup.ag/v6"
 HELIUS_API_KEY = "你的HeliusAPIKey"
 client = Client(SOLANA_RPC_URL)
-
-# 🤖 加载 AI 交易预测模型
-MODEL_PATH = "ai_model.pkl"  # 事先训练好的 AI 模型
-ai_model = joblib.load(MODEL_PATH)
 
 # 🎯 监控 KOL 钱包
 KOL_WALLETS = [
@@ -37,25 +31,6 @@ def get_common_holdings():
     common_tokens = set.intersection(*holdings_list)  # 求交集
     return list(common_tokens)
 
-# 📈 AI 预测 KOL 交易行为
-def predict_kol_trend(wallet_address):
-    url = f"https://api.helius.xyz/v0/addresses/{wallet_address}/transactions?api-key={HELIUS_API_KEY}&limit=10"
-    response = requests.get(url)
-    transactions = response.json()
-    
-    data = []
-    for tx in transactions:
-        data.append([
-            tx["blockTime"], 
-            tx["fee"], 
-            len(tx["tokenTransfers"]), 
-            tx["solTransferAmount"]
-        ])
-
-    df = pd.DataFrame(data, columns=["Time", "Fee", "Transfers", "SOL_Amount"])
-    prediction = ai_model.predict(df)
-    return round(prediction.mean(), 2)  # 预测趋势分数
-
 # 🌐 Streamlit Web UI
 st.title("📈 Solana 智能交易 & 套利系统")
 
@@ -63,11 +38,6 @@ st.title("📈 Solana 智能交易 & 套利系统")
 st.subheader("🔥 共同持有代币")
 common_tokens = get_common_holdings()
 st.write(common_tokens)
-
-# 🤖 AI 预测 KOL 交易趋势
-st.subheader("📊 KOL 交易趋势预测")
-trend_scores = {wallet: predict_kol_trend(wallet) for wallet in KOL_WALLETS}
-st.write(trend_scores)
 
 # 📡 交易执行面板
 st.subheader("🚀 一键交易")
