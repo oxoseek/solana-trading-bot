@@ -1,21 +1,10 @@
 import streamlit as st
 import requests
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from solana.rpc.api import Client
+from collections import defaultdict
 
 # 🔗 配置 Solana RPC & API
 SOLANA_RPC_URL = "https://api.mainnet-beta.solana.com"
 HELIUS_API_KEY = "ef8d226c-bdcc-457e-b5da-522feb7840be"
-client = Client(SOLANA_RPC_URL)
-
-# 设定初始的 KOL 钱包地址（可以通过 UI 动态添加）
-default_wallets = [
-    "6FNbu3i6vpigXMatC6SyWKibUAdJyyX8nM8WDtZCNcEz",
-    "Wallet_Address_2",
-    "Wallet_Address_3"
-]
 
 # ✅ 获取钱包持仓
 def get_wallet_holdings(wallet_address):
@@ -35,31 +24,19 @@ def get_common_holdings(wallet_addresses):
     wallet_holdings = [get_wallet_holdings(wallet) for wallet in wallet_addresses]
     holdings_list = [set(holdings.keys()) for holdings in wallet_holdings]
     common_tokens = set.intersection(*holdings_list)  # 求交集
-    return list(common_tokens)
+    return common_tokens
 
-# 📈 绘制 KOL 持仓图表
-def plot_wallet_holdings(wallet_addresses):
-    all_holdings = {}
+# 📈 计算共同持仓代币的数量
+def get_token_holdings(wallet_addresses, tokens):
+    token_holdings = defaultdict(float)
+    
     for wallet in wallet_addresses:
         holdings = get_wallet_holdings(wallet)
-        for token, amount in holdings.items():
-            if token not in all_holdings:
-                all_holdings[token] = []
-            all_holdings[token].append(amount)
-
-    # 创建数据框
-    df = pd.DataFrame(all_holdings, index=[f"钱包 {i+1}" for i in range(len(wallet_addresses))])
+        for token in tokens:
+            if token in holdings:
+                token_holdings[token] += holdings[token]
     
-    # 绘制条形图
-    plt.figure(figsize=(10, 6))
-    df.plot(kind='bar', stacked=True)
-    plt.title('KOL 钱包持仓情况')
-    plt.xlabel('钱包')
-    plt.ylabel('持仓数量')
-    plt.xticks(rotation=0)
-    
-    # 显示图表
-    st.pyplot(plt)
+    return token_holdings
 
 # 🌐 Streamlit Web UI
 st.set_page_config(page_title="Solana 智能交易系统", page_icon="📈", layout="wide")
@@ -78,7 +55,6 @@ st.markdown("""
 st.subheader("💼 添加/管理 KOL 钱包地址")
 wallet_addresses = st.text_area(
     "请输入 Solana 钱包地址（每个地址换行）",
-    value="\n".join(default_wallets),
     height=200
 )
 
@@ -90,19 +66,22 @@ st.subheader("🔥 共同持有代币")
 common_tokens = get_common_holdings(wallet_addresses)
 
 if common_tokens:
-    st.write("以下是多个钱包共同持有的代币：")
-    st.write(common_tokens)
+    # 获取共同持有代币的持仓数量
+    token_holdings = get_token_holdings(wallet_addresses, common_tokens)
+    
+    # 按持仓数量排序并取前 11 名
+    sorted_tokens = sorted(token_holdings.items(), key=lambda x: x[1], reverse=True)[:11]
+    top_tokens = [token for token, _ in sorted_tokens]
+    
+    st.write("以下是多个钱包共同持有的前 11 名代币：")
+    st.write(top_tokens)
 else:
     st.warning("没有找到共同持有的代币，可能是由于 API 请求失败或钱包无持仓。")
 
-# 📊 KOL 持仓图表
-st.subheader("📊 KOL 持仓分布")
-plot_wallet_holdings(wallet_addresses)
-
 # 📡 交易执行面板
 st.subheader("🚀 一键交易")
-if common_tokens:
-    selected_token = st.selectbox("选择要交易的代币", common_tokens)
+if top_tokens:
+    selected_token = st.selectbox("选择要交易的代币", top_tokens)
     trade_amount = st.number_input("输入交易数量", min_value=1, step=1)
     
     if st.button("⚡️ 执行交易"):
